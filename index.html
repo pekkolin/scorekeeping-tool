@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Greencastle Chess Club — Step-by-Step Scorekeeping & Notation</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            chess: {
+              dark: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              boardWhite: '#f0d9b5',
+              boardBlack: '#b58863',
+              gold: '#f59e0b',
+              goldHover: '#d97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Confetti script -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+    .sim-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 320px;
+      height: 320px;
+      border: 3px solid #78350f;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 0 auto;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .sim-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      position: relative;
+    }
+    .sim-cell.light { background-color: #f0d9b5; color: #1e293b; }
+    .sim-cell.dark { background-color: #b58863; color: #f8fafc; }
+    .sim-cell.moved-from { background-color: rgba(245, 158, 11, 0.45) !important; }
+    .sim-cell.moved-to { background-color: rgba(245, 158, 11, 0.75) !important; }
+
+    /* Realistic Scoresheet Inked font */
+    .inked-text {
+      font-family: "Courier New", Courier, monospace;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Print styles for Blank Scoresheet */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-scoresheet-area, #printable-scoresheet-area * {
+        visibility: visible;
+      }
+      #printable-scoresheet-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000 !important;
+        background: #fff !important;
+        padding: 20px;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-md no-print">
+    <!-- Club Title & App Badge -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner">
+        ✍️
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg text-amber-400 tracking-wide">Greencastle Chess Club</h1>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700" data-i18n="scoreBadge">Notation Master</span>
+        </div>
+        <p class="text-xs text-slate-400" data-i18n="scoreSubtitle">Step-by-Step Scorekeeping & Algebraic Notation Tutorial</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs sm:text-sm overflow-x-auto custom-scroll">
+      <button onclick="switchTab('basics')" id="tab-btn-basics" class="tab-btn px-3 py-1.5 rounded-md font-medium transition bg-amber-500 text-slate-950" data-i18n="tabBasics">📖 Notation Alphabet</button>
+      <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabSimulator">🎮 Scoresheet Simulator</button>
+      <button onclick="switchTab('scoring')" id="tab-btn-scoring" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabScoring">🏆 Match Scoring</button>
+      <button onclick="switchTab('print')" id="tab-btn-print" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabPrint">🖨️ Printable Sheet</button>
+    </nav>
+
+    <!-- Right Controls: Suite Switcher & Language -->
+    <div class="flex items-center gap-2">
+      <!-- Switch to other club apps -->
+      <a href="../presentation-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white rounded-lg border border-amber-500/40 text-xs font-semibold transition shadow-sm" title="Club Slides & Next Meeting Calendar">
+        <span>📽️</span>
+        <span class="hidden md:inline" data-i18n="navSlidesTool">Meetup Slides</span>
+      </a>
+      <a href="../meetup-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-semibold transition" title="Go to Meetup Director Dashboard">
+        <span>⏱️</span>
+        <span class="hidden md:inline" data-i18n="navMeetupTool">Meetup Tool</span>
+      </a>
+      <a href="../rules-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-semibold transition" title="Go to Beginner Rules Guide">
+        <span>📖</span>
+        <span class="hidden md:inline" data-i18n="navRulesTool">Rules Guide</span>
+      </a>
+
+      <!-- Language Toggle -->
+      <button onclick="toggleLanguage()" id="lang-toggle-btn" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold rounded-lg border border-slate-700 text-xs sm:text-sm transition shadow-sm">
+        <span>🌐</span>
+        <span id="lang-btn-label">English</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full">
+
+    <!-- TAB 1: NOTATION BASICS & ALPHABET -->
+    <section id="view-basics" class="tab-content block space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>📖</span> <span data-i18n="basicsTitle">Algebraic Chess Notation Alphabet</span>
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed" data-i18n="basicsDesc">
+          Algebraic notation is the universal language of chess. It allows players all over the world to write down games, study past masterpieces, and review their own tournament matches!
+        </p>
+      </div>
+
+      <!-- Piece Abbreviations Cards -->
+      <div>
+        <h3 class="font-bold text-slate-200 text-base mb-3 flex items-center gap-2">
+          <span>🔤</span> <span data-i18n="pieceLetterTitle">Piece Abbreviations (Single Capital Letters)</span>
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <!-- King -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
+            <span class="text-3xl block mb-1">♔</span>
+            <div class="font-mono font-extrabold text-2xl text-amber-400">K</div>
+            <div class="text-xs font-bold text-white mt-1">King (王)</div>
+          </div>
+          <!-- Queen -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
+            <span class="text-3xl block mb-1">♕</span>
+            <div class="font-mono font-extrabold text-2xl text-amber-400">Q</div>
+            <div class="text-xs font-bold text-white mt-1">Queen (后)</div>
+          </div>
+          <!-- Rook -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
+            <span class="text-3xl block mb-1">♖</span>
+            <div class="font-mono font-extrabold text-2xl text-amber-400">R</div>
+            <div class="text-xs font-bold text-white mt-1">Rook (車)</div>
+          </div>
+          <!-- Bishop -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
+            <span class="text-3xl block mb-1">♗</span>
+            <div class="font-mono font-extrabold text-2xl text-amber-400">B</div>
+            <div class="text-xs font-bold text-white mt-1">Bishop (象)</div>
+          </div>
+          <!-- Knight (N!) -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-amber-500/50 bg-amber-500/10 text-center">
+            <span class="text-3xl block mb-1">♘</span>
+            <div class="font-mono font-extrabold text-2xl text-amber-400">N</div>
+            <div class="text-xs font-bold text-white mt-1">kNight (馬)</div>
+            <span class="text-[10px] text-amber-300 font-bold block mt-1" data-i18n="knightNote">★ Why N? (K is for King!)</span>
+          </div>
+          <!-- Pawn (NO letter) -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-center">
+            <span class="text-3xl block mb-1">♙</span>
+            <div class="font-mono font-extrabold text-2xl text-emerald-400">∅</div>
+            <div class="text-xs font-bold text-white mt-1">Pawn (兵)</div>
+            <span class="text-[10px] text-emerald-300 font-bold block mt-1" data-i18n="pawnNote">★ No letter! Just destination</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Symbols Dictionary -->
+      <div>
+        <h3 class="font-bold text-slate-200 text-base mb-3 flex items-center gap-2">
+          <span>✨</span> <span data-i18n="symbolsTitle">Action & Event Symbols</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <!-- Capture -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-2xl text-rose-400 px-3 py-1 bg-rose-500/10 rounded-lg border border-rose-500/20">x</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symCaptureTitle">Capture (吃子)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symCaptureDesc">
+                Indicates a piece took an enemy piece. Example: <code class="text-amber-400">Bxf7</code> (Bishop captures on f7), <code class="text-amber-400">exd5</code> (e-pawn captures on d5).
+              </p>
+            </div>
+          </div>
+
+          <!-- Check -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-2xl text-amber-400 px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">+</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symCheckTitle">Check (將軍)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symCheckDesc">
+                Appended to the move when the opponent's King is under direct attack. Example: <code class="text-amber-400">Qh5+</code>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Checkmate -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-2xl text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">#</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symMateTitle">Checkmate (將死/將殺)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symMateDesc">
+                Marks the final winning move! (Sometimes written as ++). Example: <code class="text-amber-400">Qxf7#</code>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Kingside Castling -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-base text-blue-400 px-2 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">O-O</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symCastleKTitle">Kingside Castling (短易位)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symCastleKDesc">
+                Two capital letters O with a hyphen. Short castling toward the h-file.
+              </p>
+            </div>
+          </div>
+
+          <!-- Queenside Castling -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-sm text-blue-400 px-1.5 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">O-O-O</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symCastleQTitle">Queenside Castling (長易位)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symCastleQDesc">
+                Three capital letters O with hyphens. Long castling toward the a-file.
+              </p>
+            </div>
+          </div>
+
+          <!-- Promotion -->
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
+            <div class="font-mono font-black text-base text-purple-400 px-2 py-1.5 bg-purple-500/10 rounded-lg border border-purple-500/20">=Q</div>
+            <div>
+              <div class="font-bold text-white text-sm" data-i18n="symPromoteTitle">Promotion (兵的升變)</div>
+              <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" data-i18n="symPromoteDesc">
+                An equals sign followed by the promoted piece letter. Example: <code class="text-amber-400">e8=Q</code> or <code class="text-amber-400">c8=N</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disambiguation Box -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <h3 class="font-bold text-white text-base mb-2 flex items-center gap-2">
+          <span>❓</span> <span data-i18n="disambigTitle">Disambiguation: Which Piece Moved? (消歧義)</span>
+        </h3>
+        <p class="text-xs text-slate-300 leading-relaxed mb-3" data-i18n="disambigDesc">
+          If two identical pieces (like two Knights or two Rooks) can both legally move to the exact same destination square, we specify the starting file (column) or starting rank (row) of the piece that moved.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <strong class="text-amber-400 font-mono text-sm">Nbd2</strong>
+            <p class="text-slate-400 mt-1" data-i18n="disambigEx1">"The Knight that was on the <strong>b-file</strong> moves to d2" (to distinguish it from a Knight on the f-file that could also move to d2).</p>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <strong class="text-amber-400 font-mono text-sm">R1e2</strong>
+            <p class="text-slate-400 mt-1" data-i18n="disambigEx2">"The Rook that was on the <strong>1st rank</strong> moves to e2" (to distinguish from a Rook on the 8th rank on the same file).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 2: INTERACTIVE SCORESHEET SIMULATOR -->
+    <section id="view-simulator" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-amber-400 mb-1 flex items-center gap-2">
+            <span>🎮</span> <span data-i18n="simTitle">Step-by-Step Scoresheet Simulator</span>
+          </h2>
+          <p class="text-sm text-slate-300" data-i18n="simDesc">
+            Watch the moves on the board, choose the correct notation, and see your digital scoresheet get inked in real time!
+          </p>
+        </div>
+
+        <!-- Game Selector -->
+        <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+          <label for="demo-game-select" class="text-xs text-slate-300 font-bold" data-i18n="selectGameLabel">Demo Game:</label>
+          <select id="demo-game-select" onchange="loadSimulatorGame(this.value)" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-amber-300 font-bold focus:outline-none">
+            <option value="scholars">Scholar's Mate (學者將殺 - 4 Moves)</option>
+            <option value="italian">The Italian Game (義大利開局 - 5 Moves)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Simulator Side-by-Side Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left: Interactive Dynamic Board -->
+        <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col items-center">
+          <div class="flex items-center justify-between w-full mb-3 text-xs">
+            <span class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+              <span data-i18n="stepLabel">Step:</span> <strong id="sim-step-num" class="text-amber-400">1</strong> / <span id="sim-total-steps">8</span>
+            </span>
+            <span id="sim-turn-badge" class="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+              White's Turn (白方走子)
+            </span>
+          </div>
+
+          <div class="sim-board mb-4" id="sim-chessboard">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Prompt Question & Multiple Choice Options -->
+          <div class="w-full bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3" id="sim-question-box">
+            <div class="text-xs font-bold text-amber-300" id="sim-question-prompt">
+              <!-- Prompt text -->
+            </div>
+            <div class="grid grid-cols-2 gap-2" id="sim-options-grid">
+              <!-- Rendered by JS -->
+            </div>
+            <div id="sim-feedback-box" class="hidden p-3 rounded-xl text-xs font-medium">
+              <!-- Feedback text -->
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-4">
+            <button onclick="restartSimulator()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 transition" data-i18n="restartGameBtn">
+              🔄 Restart Game
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Realistic Digital Scoresheet -->
+        <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div>
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <span>📋</span> <span data-i18n="scoresheetTitle">Official Match Scoresheet</span>
+              </h3>
+              <p class="text-xs text-slate-400" id="sim-event-label">Greencastle Chess Club • Round 1</p>
+            </div>
+            <span id="sim-result-stamp" class="font-mono font-black text-amber-400 text-lg px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/30">
+              * (In Progress)
+            </span>
+          </div>
+
+          <!-- Scoresheet Table -->
+          <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden text-xs">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-800/80 border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider font-mono">
+                  <th class="py-2 px-3 w-14 text-center">#</th>
+                  <th class="py-2 px-4 border-r border-slate-800 text-slate-200">White (白)</th>
+                  <th class="py-2 px-4 text-slate-200">Black (黑)</th>
+                </tr>
+              </thead>
+              <tbody id="scoresheet-tbody" class="divide-y divide-slate-850">
+                <!-- Dynamically populated moves -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- TAB 3: MATCH & TOURNAMENT SCORING -->
+    <section id="view-scoring" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>🏆</span> <span data-i18n="scoringGuideTitle">Match Results & Tournament Scoring</span>
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed" data-i18n="scoringGuideDesc">
+          How do chess matches end and how are scores tallied in a club or tournament setting? Here is the universal standard used everywhere from local clubs to the World Chess Championship!
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- White Win -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center flex flex-col justify-between">
+          <div>
+            <div class="font-mono font-black text-4xl text-amber-400 mb-2">1 - 0</div>
+            <h3 class="text-lg font-bold text-white mb-2" data-i18n="whiteWinTitle">White Wins (白勝)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed" data-i18n="whiteWinDesc">
+              White checkmates Black, Black runs out of time on their clock, or Black resigns (surrenders).
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-semibold text-emerald-400">
+            White: 1 pt | Black: 0 pt
+          </div>
+        </div>
+
+        <!-- Draw -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center flex flex-col justify-between">
+          <div>
+            <div class="font-mono font-black text-4xl text-amber-300 mb-2">½ - ½</div>
+            <h3 class="text-lg font-bold text-white mb-2" data-i18n="drawScoreTitle">Draw / Tie (和棋)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed" data-i18n="drawScoreDesc">
+              Stalemate, threefold repetition, 50-move rule, insufficient material, or mutual agreement.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-semibold text-amber-300">
+            White: ½ pt | Black: ½ pt
+          </div>
+        </div>
+
+        <!-- Black Win -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center flex flex-col justify-between">
+          <div>
+            <div class="font-mono font-black text-4xl text-amber-400 mb-2">0 - 1</div>
+            <h3 class="text-lg font-bold text-white mb-2" data-i18n="blackWinTitle">Black Wins (黑勝)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed" data-i18n="blackWinDesc">
+              Black checkmates White, White runs out of time on their clock, or White resigns.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-semibold text-emerald-400">
+            White: 0 pt | Black: 1 pt
+          </div>
+        </div>
+      </div>
+
+      <!-- Tie-Breaks Explained -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h3 class="font-bold text-white text-base mb-2 flex items-center gap-2">
+          <span>⚖️</span> <span data-i18n="tiebreakTitle">Understanding Tournament Tie-Breaks</span>
+        </h3>
+        <p class="text-xs text-slate-300 leading-relaxed mb-4" data-i18n="tiebreakDesc">
+          When two or more players finish a tournament with the exact same point total, tie-break systems determine final placements:
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-amber-400 text-sm mb-1" data-i18n="buchholzTitle">Buchholz System (布赫茲系數)</h4>
+            <p class="text-slate-400 leading-relaxed" data-i18n="buchholzDesc">
+              Calculates the sum of all your opponents' total scores. Players who faced tougher, higher-scoring opponents receive a higher tie-break rank!
+            </p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-amber-400 text-sm mb-1" data-i18n="directTitle">Direct Encounter (勝負關係)</h4>
+            <p class="text-slate-400 leading-relaxed" data-i18n="directDesc">
+              If the tied players played each other in an earlier round of the tournament, whoever won that head-to-head game takes the higher spot.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 4: PRINTABLE SCORESHEET GENERATOR -->
+    <section id="view-print" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div>
+          <h2 class="text-2xl font-bold text-amber-400 mb-1 flex items-center gap-2">
+            <span>🖨️</span> <span data-i18n="printTitle">Printable Tournament Scoresheet</span>
+          </h2>
+          <p class="text-sm text-slate-300" data-i18n="printDesc">
+            Generate and print official blank 60-move scoresheets for your chess club meetups. Optimized for standard Letter / A4 paper.
+          </p>
+        </div>
+        <button onclick="window.print()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 text-sm transition transform active:scale-95 flex items-center gap-2">
+          <span>🖨️</span>
+          <span data-i18n="printBtn">Print Scoresheet</span>
+        </button>
+      </div>
+
+      <!-- Printable Scoresheet Area -->
+      <div id="printable-scoresheet-area" class="bg-white text-slate-950 p-8 rounded-2xl shadow-xl max-w-4xl mx-auto border border-slate-300">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-6">
+          <div class="flex items-center gap-3">
+            <span class="text-4xl">♟️</span>
+            <div>
+              <h1 class="text-2xl font-black tracking-wide uppercase">Greencastle Chess Club</h1>
+              <p class="text-xs font-semibold text-slate-700">Official Tournament Scoresheet • Community Casual Meetup</p>
+            </div>
+          </div>
+          <div class="text-right text-xs space-y-1 font-mono">
+            <div><strong>Round:</strong> ____________</div>
+            <div><strong>Board:</strong> ____________</div>
+            <div><strong>Date:</strong> 20____-____-____</div>
+          </div>
+        </div>
+
+        <!-- Player Details Meta Box -->
+        <div class="grid grid-cols-2 gap-4 border border-slate-400 p-3 rounded-lg text-xs mb-6">
+          <div>
+            <strong>WHITE (白方):</strong> ________________________
+            <div class="mt-1">Rating: ________ Club ID: ________</div>
+          </div>
+          <div>
+            <strong>BLACK (黑方):</strong> ________________________
+            <div class="mt-1">Rating: ________ Club ID: ________</div>
+          </div>
+        </div>
+
+        <!-- 60 Moves Dual-Column Grid -->
+        <div class="grid grid-cols-2 gap-6 text-xs font-mono">
+          <!-- Col 1: Moves 1 to 30 -->
+          <div>
+            <table class="w-full border-collapse border border-slate-400 text-center">
+              <thead>
+                <tr class="bg-slate-200 border-b border-slate-400 text-[11px] font-bold">
+                  <th class="py-1 w-10 border-r border-slate-400">#</th>
+                  <th class="py-1 border-r border-slate-400">WHITE</th>
+                  <th class="py-1">BLACK</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-300">
+                <!-- 1 to 30 rows generated dynamically -->
+                <script>
+                  for (let i = 1; i <= 30; i++) {
+                    document.write(`
+                      <tr class="h-6">
+                        <td class="font-bold border-r border-slate-400 bg-slate-50">${i}</td>
+                        <td class="border-r border-slate-400"></td>
+                        <td></td>
+                      </tr>
+                    `);
+                  }
+                </script>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Col 2: Moves 31 to 60 -->
+          <div>
+            <table class="w-full border-collapse border border-slate-400 text-center">
+              <thead>
+                <tr class="bg-slate-200 border-b border-slate-400 text-[11px] font-bold">
+                  <th class="py-1 w-10 border-r border-slate-400">#</th>
+                  <th class="py-1 border-r border-slate-400">WHITE</th>
+                  <th class="py-1">BLACK</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-300">
+                <!-- 31 to 60 rows generated dynamically -->
+                <script>
+                  for (let i = 31; i <= 60; i++) {
+                    document.write(`
+                      <tr class="h-6">
+                        <td class="font-bold border-r border-slate-400 bg-slate-50">${i}</td>
+                        <td class="border-r border-slate-400"></td>
+                        <td></td>
+                      </tr>
+                    `);
+                  }
+                </script>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer Signatures -->
+        <div class="mt-6 pt-4 border-t-2 border-slate-900 grid grid-cols-3 gap-4 text-xs font-semibold text-center">
+          <div>
+            <div class="border-b border-slate-500 mb-1 pb-4"></div>
+            White Signature
+          </div>
+          <div>
+            <div class="border-b border-slate-500 mb-1 pb-4">
+              [ 1 - 0 ] &nbsp;&nbsp; [ ½ - ½ ] &nbsp;&nbsp; [ 0 - 1 ]
+            </div>
+            Final Result
+          </div>
+          <div>
+            <div class="border-b border-slate-500 mb-1 pb-4"></div>
+            Black Signature
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ==================== SCRIPT & LOGIC ==================== -->
+  <script>
+    // --- Internationalization Dictionary ---
+    const TRANSLATIONS = {
+      en: {
+        scoreBadge: "Notation Master",
+        scoreSubtitle: "Step-by-Step Scorekeeping & Algebraic Notation Tutorial",
+        tabBasics: "📖 Notation Alphabet",
+        tabSimulator: "🎮 Scoresheet Simulator",
+        tabScoring: "🏆 Match Scoring",
+        tabPrint: "🖨️ Printable Sheet",
+        navMeetupTool: "Meetup Tool",
+        navRulesTool: "Rules Guide",
+        basicsTitle: "Algebraic Chess Notation Alphabet",
+        basicsDesc: "Algebraic notation is the universal language of chess. It allows players all over the world to write down games, study past masterpieces, and review their own tournament matches!",
+        pieceLetterTitle: "Piece Abbreviations (Single Capital Letters)",
+        knightNote: "★ Why N? (K is for King!)",
+        pawnNote: "★ No letter! Just destination",
+        symbolsTitle: "Action & Event Symbols",
+        symCaptureTitle: "Capture (吃子)",
+        symCaptureDesc: "Indicates a piece took an enemy piece. Example: Bxf7, exd5.",
+        symCheckTitle: "Check (將軍)",
+        symCheckDesc: "Appended to the move when the opponent's King is under direct attack. Example: Qh5+.",
+        symMateTitle: "Checkmate (將死/將殺)",
+        symMateDesc: "Marks the final winning move! (Sometimes written as ++). Example: Qxf7#.",
+        symCastleKTitle: "Kingside Castling (短易位)",
+        symCastleKDesc: "Two capital letters O with a hyphen. Short castling toward the h-file.",
+        symCastleQTitle: "Queenside Castling (長易位)",
+        symCastleQDesc: "Three capital letters O with hyphens. Long castling toward the a-file.",
+        symPromoteTitle: "Promotion (兵的升變)",
+        symPromoteDesc: "An equals sign followed by the promoted piece letter. Example: e8=Q or c8=N.",
+        disambigTitle: "Disambiguation: Which Piece Moved? (消歧義)",
+        disambigDesc: "If two identical pieces can both legally move to the exact same destination square, specify the starting file (column) or starting rank (row) of the piece that moved.",
+        disambigEx1: "'The Knight that was on the b-file moves to d2' (to distinguish it from a Knight on f-file).",
+        disambigEx2: "'The Rook that was on the 1st rank moves to e2' (to distinguish from a Rook on 8th rank).",
+        simTitle: "Step-by-Step Scoresheet Simulator",
+        simDesc: "Watch the moves on the board, choose the correct notation, and see your digital scoresheet get inked in real time!",
+        selectGameLabel: "Demo Game:",
+        stepLabel: "Step:",
+        restartGameBtn: "🔄 Restart Game",
+        scoresheetTitle: "Official Match Scoresheet",
+        scoringGuideTitle: "Match Results & Tournament Scoring",
+        scoringGuideDesc: "How do chess matches end and how are scores tallied in a club or tournament setting? Here is the universal standard used everywhere!",
+        whiteWinTitle: "White Wins (白勝)",
+        whiteWinDesc: "White checkmates Black, Black runs out of time on clock, or Black resigns.",
+        drawScoreTitle: "Draw / Tie (和棋)",
+        drawScoreDesc: "Stalemate, threefold repetition, 50-move rule, insufficient material, or mutual agreement.",
+        blackWinTitle: "Black Wins (黑勝)",
+        blackWinDesc: "Black checkmates White, White runs out of time on clock, or White resigns.",
+        tiebreakTitle: "Understanding Tournament Tie-Breaks",
+        tiebreakDesc: "When players tie with the exact same points, tie-breaks determine final trophies and placement:",
+        buchholzTitle: "Buchholz System (布赫茲系數)",
+        buchholzDesc: "Calculates the sum of all your opponents' total scores. Players who played tougher competition rank higher!",
+        directTitle: "Direct Encounter (勝負關係)",
+        directDesc: "If the tied players faced each other earlier in the event, the winner of that game takes the higher spot.",
+        printTitle: "Printable Tournament Scoresheet",
+        printDesc: "Generate and print official blank 60-move scoresheets for your chess club meetup. Optimized for Letter / A4 paper.",
+        printBtn: "Print Scoresheet"
+      },
+      zh: {
+        scoreBadge: "記譜大師",
+        scoreSubtitle: "步進式西洋棋代數記譜法與計分教學工具",
+        tabBasics: "📖 記譜字母表",
+        tabSimulator: "🎮 實戰記譜模擬器",
+        tabScoring: "🏆 比賽計分指南",
+        tabPrint: "🖨️ 空白記譜紙列印",
+        navMeetupTool: "聚會主控",
+        navRulesTool: "規則指南",
+        basicsTitle: "西洋棋代數記譜法字母字典",
+        basicsDesc: "代數記譜法（Algebraic Notation）是全世界共通的西洋棋語言。它讓棋手能夠完整記錄對局、覆盤研究世界名局，並在比賽中作為判定爭議的正式依據！",
+        pieceLetterTitle: "棋子英文縮寫（單一大寫字母）",
+        knightNote: "★ 為什麼是 N？（因為 K 已經給國王了！）",
+        pawnNote: "★ 兵沒有字母！直接記目標格子",
+        symbolsTitle: "動作與事件特殊符號",
+        symCaptureTitle: "吃子 (Capture)",
+        symCaptureDesc: "表示該子吃掉對手棋子，符號為小寫 x。例如：Bxf7（象吃 f7）、exd5（e 兵吃 d5）。",
+        symCheckTitle: "將軍 (Check)",
+        symCheckDesc: "當走完這一步使對方國王受到直接攻擊時，在末尾加上加號 +。例如：Qh5+。",
+        symMateTitle: "將死 / 將殺 (Checkmate)",
+        symMateDesc: "西洋棋中最榮耀的終局獲勝符號！在記譜末尾加上井字號 #。例如：Qxf7#。",
+        symCastleKTitle: "王翼易位 / 短易位 (Kingside Castle)",
+        symCastleKDesc: "以兩個大寫英文字母 O 與連字號表示（O-O），向 h 行方向的短距離易位。",
+        symCastleQTitle: "后翼易位 / 長易位 (Queenside Castle)",
+        symCastleQDesc: "以三個大寫英文字母 O 與連字號表示（O-O-O），向 a 行方向的長距離易位。",
+        symPromoteTitle: "兵的升變 (Promotion)",
+        symPromoteDesc: "以等號 = 接上變身後的棋子大寫字母。例如：e8=Q（變皇后）或 c8=N（變騎士）。",
+        disambigTitle: "消歧義：究竟是哪隻棋子動了？ (Disambiguation)",
+        disambigDesc: "當兩隻相同的棋子（例如雙馬或雙車）都能走到同一個目標格子時，必須加上起始的直行字母或橫行數字以作區隔。",
+        disambigEx1: "「位在 b 行的馬走到 d2 格」（Nbd2，以區分原本在 f 行也能走到 d2 的另一隻馬）。",
+        disambigEx2: "「位在第 1 行的車走到 e2 格」（R1e2，以區分原本在第 8 行同一列的另一隻車）。",
+        simTitle: "步進式實戰記譜模擬器",
+        simDesc: "觀察棋盤上的實際走法，選擇正確的代數記譜，並親眼見證電子記譜紙即時被漂亮的筆跡填滿！",
+        selectGameLabel: "示範棋局:",
+        stepLabel: "當前步驟:",
+        restartGameBtn: "🔄 重新開始模擬",
+        scoresheetTitle: "官方對局記譜紙 (Scoresheet)",
+        scoringGuideTitle: "比賽計分與比分結算指南",
+        scoringGuideDesc: "西洋棋比賽如何判定終局？在棋社與官方賽事中又是如何結算成績的？這裡為您整理最權威的國際標準！",
+        whiteWinTitle: "白勝 (White Wins)",
+        whiteWinDesc: "白方將死黑王、黑方棋鐘超時、或黑方主動認輸 (Resign)。",
+        drawScoreTitle: "和棋 / 平手 (Draw)",
+        drawScoreDesc: "逼和 (Stalemate)、三次重複局面、50 步規則、子力不足或雙方協議和棋。",
+        blackWinTitle: "黑勝 (Black Wins)",
+        blackWinDesc: "黑方將死白王、白方棋鐘超時、或白方主動認輸。",
+        tiebreakTitle: "錦標賽同分破同分規則 (Tie-Breaks)",
+        tiebreakDesc: "當多位棋手總積分完全相同時，破同分系統將決定名次與獎盃歸屬：",
+        buchholzTitle: "布赫茲系數 (Buchholz System)",
+        buchholzDesc: "計算你所有對手的總得分加總。所面對的對手實力越強、總分越高，你的破同分排位就越靠前！",
+        directTitle: "對戰關係 (Direct Encounter)",
+        directDesc: "若同分的兩位棋手在先前的比賽中曾直接交手過，由勝者贏得更高的排名順位。",
+        printTitle: "標準空白比賽記譜紙列印",
+        printDesc: "為西洋棋社活動生成並列印標準 60 步雙欄記譜紙，完美相容 Letter / A4 紙張。",
+        printBtn: "列印記譜紙"
+      }
+    };
+
+    let currentLang = 'en';
+
+    function t(key) {
+      return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS['en'][key] || key;
+    }
+
+    function toggleLanguage() {
+      currentLang = (currentLang === 'en') ? 'zh' : 'en';
+      localStorage.setItem('chess_score_tool_lang', currentLang);
+      applyLanguage();
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = (currentLang === 'en') ? 'en' : 'zh-TW';
+      document.getElementById('lang-btn-label').textContent = (currentLang === 'en') ? 'English' : '繁體中文';
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) el.textContent = t(key);
+      });
+
+      renderSimulatorStep();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-slate-950');
+        btn.classList.add('text-slate-300');
+      });
+
+      const target = document.getElementById(`view-${tabId}`);
+      const btn = document.getElementById(`tab-btn-${tabId}`);
+      if (target) target.classList.remove('hidden');
+      if (btn) {
+        btn.classList.add('bg-amber-500', 'text-slate-950');
+        btn.classList.remove('text-slate-300');
+      }
+    }
+
+    // --- Simulator Game Database ---
+    const SIM_GAMES = {
+      scholars: {
+        titleEn: "Scholar's Mate (學者將殺)",
+        whitePlayer: "White",
+        blackPlayer: "Black",
+        result: "1 - 0",
+        steps: [
+          {
+            moveNum: 1, side: 'white',
+            from: [6, 4], to: [4, 4], piece: '♙',
+            promptEn: "White advances the King's Pawn 2 squares forward to e4.",
+            promptZh: "白方國王前面的兵直走兩格前進到 e4 格。",
+            options: ["Pe4", "e4", "e2-e4", "e2e4"],
+            correctIdx: 1,
+            notation: "e4",
+            explainEn: "Pawn moves never use a letter! Simply write the target square 'e4'.",
+            explainZh: "兵的走法不寫任何大寫字母，直接寫目標格子 'e4'！"
+          },
+          {
+            moveNum: 1, side: 'black',
+            from: [1, 4], to: [3, 4], piece: '♟',
+            promptEn: "Black matches by advancing their King's Pawn to e5.",
+            promptZh: "黑方同樣將兵推進兩格到 e5 格對峙。",
+            options: ["e7-e5", "Pe5", "e5", "Ke5"],
+            correctIdx: 2,
+            notation: "e5",
+            explainEn: "Correct! Black pawn to e5 is written simply as 'e5'.",
+            explainZh: "正確！黑兵走到 e5 同樣只寫 'e5'。"
+          },
+          {
+            moveNum: 2, side: 'white',
+            from: [7, 5], to: [4, 2], piece: '♗',
+            promptEn: "White brings out the light-square Bishop to c4, aiming at f7.",
+            promptZh: "白方出動淺色格主教來到 c4，槍口直指黑方虛弱的 f7 兵。",
+            options: ["Bc4", "c4", "Bf7", "Lc4"],
+            correctIdx: 0,
+            notation: "Bc4",
+            explainEn: "Capital 'B' for Bishop, followed by the destination square 'c4'.",
+            explainZh: "主教使用大寫英文字母 'B'，接上目標格子 'c4'。"
+          },
+          {
+            moveNum: 2, side: 'black',
+            from: [0, 1], to: [2, 2], piece: '♞',
+            promptEn: "Black develops their Queen's Knight to c6.",
+            promptZh: "黑方跳出后翼騎士（馬）來到 c6 格防守中路。",
+            options: ["Kc6", "Nc6", "c6", "Knc6"],
+            correctIdx: 1,
+            notation: "Nc6",
+            explainEn: "Remember: 'N' is for kNight! (K is reserved for King).",
+            explainZh: "記住：騎士使用大寫字母 'N'！（因為 K 是國王）。"
+          },
+          {
+            moveNum: 3, side: 'white',
+            from: [7, 3], to: [3, 7], piece: '♕',
+            promptEn: "White attacks early: Queen sorties out to h5!",
+            promptZh: "白方迅速發起猛攻：皇后長途奔襲出動到 h5！",
+            options: ["Qh5", "h5", "Dh5", "Qxh5"],
+            correctIdx: 0,
+            notation: "Qh5",
+            explainEn: "Capital 'Q' for Queen, followed by destination square 'h5'.",
+            explainZh: "皇后使用大寫字母 'Q'，接上目標格 'h5'。"
+          },
+          {
+            moveNum: 3, side: 'black',
+            from: [0, 6], to: [2, 5], piece: '♞',
+            promptEn: "Black makes a careless mistake: developing the Knight to f6, attacking the Queen but ignoring f7 defense!",
+            promptZh: "黑方犯下大意失誤：跳出 f6 馬攻擊白后，卻忽略了 f7 致命弱點！",
+            options: ["Nf6", "Kf6", "f6", "Nxf6"],
+            correctIdx: 0,
+            notation: "Nf6",
+            explainEn: "Knight moves to f6: 'Nf6'.",
+            explainZh: "騎士走到 f6 記為 'Nf6'。"
+          },
+          {
+            moveNum: 4, side: 'white',
+            from: [3, 7], to: [1, 5], piece: '♕',
+            promptEn: "White strikes! Queen takes the f7 pawn, defended by the bishop, delivering checkmate!",
+            promptZh: "白方致命一擊！白后在主教掩護下一口吃掉 f7 兵，將死黑王！",
+            options: ["Qxf7", "Qf7+", "Qxf7#", "Qxf7++"],
+            correctIdx: 2,
+            notation: "Qxf7#",
+            explainEn: "'Q' for Queen, 'x' for capture, 'f7' square, and '#' for checkmate!",
+            explainZh: "'Q'（后）+ 'x'（吃子）+ 'f7'（格子）+ '#'（將殺終結）！"
+          }
+        ]
+      },
+      italian: {
+        titleEn: "The Italian Game (義大利開局)",
+        whitePlayer: "White",
+        blackPlayer: "Black",
+        result: "*",
+        steps: [
+          {
+            moveNum: 1, side: 'white',
+            from: [6, 4], to: [4, 4], piece: '♙',
+            promptEn: "White opens with the King's Pawn to e4.",
+            promptZh: "白方起手挺出王前兵至 e4。",
+            options: ["e4", "Pe4", "e2-e4", "E4"],
+            correctIdx: 0,
+            notation: "e4",
+            explainEn: "Pawn moves: simply write 'e4'.",
+            explainZh: "兵走到 e4 直接記 'e4'。"
+          },
+          {
+            moveNum: 1, side: 'black',
+            from: [1, 4], to: [3, 4], piece: '♟',
+            promptEn: "Black replies with e5.",
+            promptZh: "黑方應對挺兵至 e5。",
+            options: ["Pe5", "e5", "e7-e5", "E5"],
+            correctIdx: 1,
+            notation: "e5",
+            explainEn: "Black pawn to e5: 'e5'.",
+            explainZh: "黑兵走到 e5 記為 'e5'。"
+          },
+          {
+            moveNum: 2, side: 'white',
+            from: [7, 6], to: [5, 5], piece: '♘',
+            promptEn: "White develops Knight to f3, attacking Black's e5 pawn.",
+            promptZh: "白方跳出馬來到 f3，施壓黑方 e5 兵。",
+            options: ["Nf3", "Kf3", "f3", "Nf3+"],
+            correctIdx: 0,
+            notation: "Nf3",
+            explainEn: "Knight to f3: 'Nf3'.",
+            explainZh: "騎士走到 f3 記為 'Nf3'。"
+          },
+          {
+            moveNum: 2, side: 'black',
+            from: [0, 1], to: [2, 2], piece: '♞',
+            promptEn: "Black defends the e5 pawn with Knight to c6.",
+            promptZh: "黑方跳出 c6 馬防守自家 e5 兵。",
+            options: ["Nc6", "Kc6", "c6", "Nxc6"],
+            correctIdx: 0,
+            notation: "Nc6",
+            explainEn: "Knight to c6: 'Nc6'.",
+            explainZh: "騎士走到 c6 記為 'Nc6'。"
+          },
+          {
+            moveNum: 3, side: 'white',
+            from: [7, 5], to: [4, 2], piece: '♗',
+            promptEn: "White plays Bishop to c4 (The Italian Game).",
+            promptZh: "白方挺出主教至 c4（義大利開局標誌性走法）。",
+            options: ["Bc4", "c4", "Bf7", "Bc4+"],
+            correctIdx: 0,
+            notation: "Bc4",
+            explainEn: "Bishop to c4: 'Bc4'.",
+            explainZh: "主教走到 c4 記為 'Bc4'。"
+          }
+        ]
+      }
+    };
+
+    let currentGameKey = 'scholars';
+    let currentStepIndex = 0;
+    let currentBoard = [];
+
+    function initSimulatorBoardState() {
+      currentBoard = [
+        ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+        ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+        ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+      ];
+    }
+
+    function loadSimulatorGame(gameKey) {
+      currentGameKey = gameKey;
+      restartSimulator();
+    }
+
+    function restartSimulator() {
+      currentStepIndex = 0;
+      initSimulatorBoardState();
+      renderSimulatorStep();
+      renderScoresheetTable();
+      document.getElementById('sim-result-stamp').textContent = '* (In Progress)';
+      document.getElementById('sim-feedback-box').classList.add('hidden');
+    }
+
+    function renderSimulatorStep() {
+      const game = SIM_GAMES[currentGameKey];
+      const step = game.steps[currentStepIndex];
+      const isZh = currentLang === 'zh';
+
+      document.getElementById('sim-step-num').textContent = currentStepIndex + 1;
+      document.getElementById('sim-total-steps').textContent = game.steps.length;
+
+      if (!step) {
+        // Game complete
+        document.getElementById('sim-turn-badge').textContent = isZh ? '★ 對局結束' : '★ Game Completed';
+        document.getElementById('sim-turn-badge').className = 'px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold';
+        document.getElementById('sim-question-prompt').textContent = isZh ? `太棒了！您已成功完整記錄此局棋譜！最終比分：${game.result}` : `Great job! You have fully and accurately recorded this game! Result: ${game.result}`;
+        document.getElementById('sim-options-grid').innerHTML = '';
+        document.getElementById('sim-result-stamp').textContent = game.result;
+        try {
+          if (window.confetti) confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        } catch (e) {}
+        renderBoardDisplay(null);
+        return;
+      }
+
+      // Turn badge
+      if (step.side === 'white') {
+        document.getElementById('sim-turn-badge').textContent = isZh ? `第 ${step.moveNum} 回合 • 白方走子` : `Move ${step.moveNum} • White's Turn`;
+        document.getElementById('sim-turn-badge').className = 'px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold';
+      } else {
+        document.getElementById('sim-turn-badge').textContent = isZh ? `第 ${step.moveNum} 回合 • 黑方走子` : `Move ${step.moveNum} • Black's Turn`;
+        document.getElementById('sim-turn-badge').className = 'px-2.5 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold';
+      }
+
+      // Prompt
+      document.getElementById('sim-question-prompt').textContent = isZh ? step.promptZh : step.promptEn;
+
+      // Render Multiple Choice Options
+      const optionsContainer = document.getElementById('sim-options-grid');
+      optionsContainer.innerHTML = '';
+
+      step.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'p-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 font-mono font-bold text-sm text-slate-100 transition active:scale-95 text-left';
+        btn.innerHTML = `<span class="text-amber-400 mr-1.5">${String.fromCharCode(65 + idx)}.</span> ${opt}`;
+        btn.onclick = () => submitSimulatorChoice(idx);
+        optionsContainer.appendChild(btn);
+      });
+
+      renderBoardDisplay(step);
+    }
+
+    function renderBoardDisplay(currentStep) {
+      const grid = document.getElementById('sim-chessboard');
+      grid.innerHTML = '';
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cell = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          cell.className = `sim-cell ${isLight ? 'light' : 'dark'}`;
+
+          if (currentStep) {
+            if (r === currentStep.from[0] && c === currentStep.from[1]) {
+              cell.classList.add('moved-from');
+            }
+            if (r === currentStep.to[0] && c === currentStep.to[1]) {
+              cell.classList.add('moved-to');
+            }
+          }
+
+          cell.textContent = currentBoard[r][c];
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function submitSimulatorChoice(choiceIdx) {
+      const game = SIM_GAMES[currentGameKey];
+      const step = game.steps[currentStepIndex];
+      const isZh = currentLang === 'zh';
+      const feedbackBox = document.getElementById('sim-feedback-box');
+      feedbackBox.classList.remove('hidden');
+
+      if (choiceIdx === step.correctIdx) {
+        // Correct!
+        feedbackBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        feedbackBox.innerHTML = `✓ <strong>${isZh ? '正確！' : 'Correct!'}</strong> ${isZh ? step.explainZh : step.explainEn}`;
+
+        // Update board state
+        currentBoard[step.to[0]][step.to[1]] = step.piece;
+        currentBoard[step.from[0]][step.from[1]] = '';
+
+        currentStepIndex++;
+        renderScoresheetTable();
+
+        setTimeout(() => {
+          feedbackBox.classList.add('hidden');
+          renderSimulatorStep();
+        }, 1200);
+
+      } else {
+        // Incorrect
+        feedbackBox.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        feedbackBox.innerHTML = `✗ <strong>${isZh ? '不對喔，再想一下！' : 'Not quite, try again!'}</strong> ${isZh ? step.explainZh : step.explainEn}`;
+      }
+    }
+
+    function renderScoresheetTable() {
+      const tbody = document.getElementById('scoresheet-tbody');
+      tbody.innerHTML = '';
+
+      const game = SIM_GAMES[currentGameKey];
+
+      // Group steps by moveNum
+      const maxMove = Math.max(...game.steps.map(s => s.moveNum));
+
+      for (let m = 1; m <= Math.max(maxMove, 5); m++) {
+        const whiteStep = game.steps.find(s => s.moveNum === m && s.side === 'white');
+        const blackStep = game.steps.find(s => s.moveNum === m && s.side === 'black');
+
+        const whiteIdx = game.steps.indexOf(whiteStep);
+        const blackIdx = game.steps.indexOf(blackStep);
+
+        const whiteInked = (whiteIdx !== -1 && whiteIdx < currentStepIndex);
+        const blackInked = (blackIdx !== -1 && blackIdx < currentStepIndex);
+
+        const tr = document.createElement('tr');
+        tr.className = 'h-9 hover:bg-slate-900/40 transition font-mono';
+        tr.innerHTML = `
+          <td class="py-1 px-3 text-center text-slate-500 font-bold border-r border-slate-800">${m}</td>
+          <td class="py-1 px-4 border-r border-slate-800 ${whiteInked ? 'inked-text' : 'text-slate-600'}">
+            ${whiteInked ? whiteStep.notation : '...'}
+          </td>
+          <td class="py-1 px-4 ${blackInked ? 'inked-text' : 'text-slate-600'}">
+            ${blackInked ? blackStep.notation : (whiteInked && blackStep ? '...' : '')}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // --- Init ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('chess_score_tool_lang');
+      if (savedLang) currentLang = savedLang;
+      applyLanguage();
+      restartSimulator();
+    });
+  </script>
+</body>
+</html>
